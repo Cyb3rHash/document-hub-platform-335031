@@ -88,6 +88,46 @@ function parsePossibleJson(text: string): unknown {
   }
 }
 
+/**
+ * Attempt to normalize backend responses into a simpler shape.
+ *
+ * Our Express backend returns an envelope:
+ *   { status: "ok", data: <payload>, meta?: <meta> }
+ *
+ * Many frontend hooks/components expect the payload directly (e.g. `{ items: [] }`).
+ * This function unwraps the envelope when detected, while keeping compatibility
+ * with non-enveloped APIs.
+ */
+function unwrapApiEnvelope(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== "object") return parsed;
+
+  const obj = parsed as Record<string, unknown>;
+  const hasStatus = typeof obj.status === "string";
+  const hasData = "data" in obj;
+
+  if (!hasStatus || !hasData) return parsed;
+
+  // Express convention in this repo: ok()/created() => { status: "ok", data, meta? }
+  if (obj.status === "ok") {
+    const data = obj.data;
+    const meta = obj.meta;
+
+    // Special-case document list shape: map meta.count => total for UI convenience.
+    // If data is an object, we can merge in `total` without breaking consumers.
+    if (data && typeof data === "object" && meta && typeof meta === "object") {
+      const metaObj = meta as Record<string, unknown>;
+      if (typeof metaObj.count === "number") {
+        return { ...(data as Record<string, unknown>), total: metaObj.count };
+      }
+    }
+
+    return data;
+  }
+
+  // For error envelopes we keep the full object so ApiError.details remains useful.
+  return parsed;
+}
+
 type ApiRequestOptions = {
   auth?: boolean;
   signal?: AbortSignal;
@@ -149,7 +189,8 @@ export async function apiRequest<TResponse>(
       });
     }
 
-    return parsed as TResponse;
+    const unwrapped = unwrapApiEnvelope(parsed);
+    return unwrapped as TResponse;
   } catch (err: unknown) {
     if (err instanceof ApiError) {
       console.error("[api:error]", { operation, status: err.status, requestId: err.requestId, details: err.details });
