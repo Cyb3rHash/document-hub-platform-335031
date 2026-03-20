@@ -290,8 +290,38 @@ export default function ViewerPage() {
     setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
   }
 
+  const mixedContentRisk = useMemo(() => {
+    try {
+      const frontendProto = window.location.protocol;
+      const apiBase =
+        import.meta.env.VITE_API_BASE ??
+        import.meta.env.VITE_BACKEND_URL ??
+        import.meta.env.VITE_NEXT_PUBLIC_API_BASE ??
+        import.meta.env.VITE_NEXT_PUBLIC_BACKEND_URL ??
+        "";
+
+      // If api base is blank, requests are same-origin and generally safe from mixed content rules.
+      if (!apiBase) return false;
+
+      const apiProto = new URL(apiBase).protocol;
+      return frontendProto === "https:" && apiProto === "http:";
+    } catch {
+      return false;
+    }
+  }, []);
+
   return (
     <div className="grid gap-6">
+      {mixedContentRisk ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Potential mixed content configuration</p>
+          <p className="mt-1 text-amber-900/80">
+            This page is loaded over HTTPS, but the API base URL appears to be HTTP. Brave (and other browsers) will block
+            those requests, which can make the preview appear “blocked”. Update VITE_API_BASE / VITE_BACKEND_URL to an
+            HTTPS URL.
+          </p>
+        </div>
+      ) : null}
       <PageHeader
         title="Viewer"
         subtitle="Review documents with access-aware controls and backend-provided signed URLs."
@@ -568,7 +598,13 @@ export default function ViewerPage() {
                     src={signedUrl}
                     title={activeTitle}
                     className="h-[28rem] w-full sm:h-[34rem]"
-                    sandbox="allow-same-origin allow-scripts allow-forms"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    // Brave (and other privacy-focused browsers) can block cross-origin embeds more aggressively,
+                    // especially when the iframe is sandboxed with unnecessary capabilities.
+                    // For a simple file preview we do NOT need scripts; keep the sandbox as restrictive as possible.
+                    sandbox="allow-same-origin allow-forms"
+                    allow="fullscreen"
                   />
                   <div className="border-t border-gray-100 p-3 text-xs text-gray-500">
                     If the embedded preview does not load, use “Open in new tab” or “Download”.

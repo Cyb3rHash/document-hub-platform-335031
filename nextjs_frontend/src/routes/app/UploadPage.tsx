@@ -215,9 +215,10 @@ export default function UploadPage() {
                           className="px-3 py-2"
                           disabled={deleting}
                           onClick={() => void onDeleteUploaded()}
+                          title="Delete the uploaded document (cannot be undone)"
                         >
                           <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
-                          {deleting ? "Deleting…" : "Delete"}
+                          {deleting ? "Deleting…" : "Delete uploaded document"}
                         </Button>
                       </div>
                     </div>
