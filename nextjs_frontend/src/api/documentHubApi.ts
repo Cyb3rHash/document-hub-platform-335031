@@ -53,17 +53,25 @@ export const documentHubApi = {
     form.append("file", file);
     if (title) form.append("title", title);
 
-    const candidates = ["/api/documents/upload", "/api/documents", "/documents/upload", "/documents"];
+    // Canonical backend route is POST /documents (mounted under both / and /api on the server).
+    // Our apiRequest() already prefixes /api when needed, so keep the path simple.
+    const res = await apiRequest<unknown>("/documents", { method: "POST", body: form });
 
-    let lastErr: unknown = null;
-    for (const path of candidates) {
-      try {
-        return await apiRequest<UploadDocumentResponse>(path, { method: "POST", body: form });
-      } catch (e) {
-        lastErr = e;
-      }
+    // Backward/forward compatible response normalization:
+    // - New backend returns { id, title, status, document }
+    // - Older backend returned { document: { id, ... } }
+    if (res && typeof res === "object") {
+      const obj = res as Record<string, unknown>;
+      const topId = typeof obj.id === "string" ? obj.id : null;
+      const doc = obj.document && typeof obj.document === "object" ? (obj.document as Record<string, unknown>) : null;
+      const docId = doc && typeof doc.id === "string" ? (doc.id as string) : null;
+
+      const id = topId ?? docId;
+      if (id) return { id };
     }
-    throw lastErr;
+
+    // If we can't detect an id, return the raw value (will be surfaced as a UI error by caller if used incorrectly).
+    return res as UploadDocumentResponse;
   },
 
   /** Fetch document detail by id. */

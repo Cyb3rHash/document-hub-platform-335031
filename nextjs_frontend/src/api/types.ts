@@ -28,6 +28,7 @@ export type UploadDocumentResponse = {
   id: string;
   title?: string;
   status?: DocumentStatus;
+  document?: DocumentDetail;
 };
 
 export type AdminStatsResponse = {
