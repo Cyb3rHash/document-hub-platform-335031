@@ -23,6 +23,7 @@ import { getSupabaseClient } from "@/utils/supabaseClient";
 
 export type ApiBaseConfig = {
   baseUrl: string;
+  apiPrefix: string;
 };
 
 export class ApiError extends Error {
@@ -52,8 +53,13 @@ export function getApiBaseConfig(): ApiBaseConfig {
    * - VITE_NEXT_PUBLIC_API_BASE (legacy support)
    * - VITE_NEXT_PUBLIC_BACKEND_URL (legacy support)
    *
-   * If none is set, defaults to same-origin (empty base) which only works if the SPA is served behind the same domain
-   * and a reverse proxy routes API paths to the backend.
+   * Expected values:
+   * - For the provided environment, backend is served at:
+   *   https://vscode-internal-18441-beta.beta01.cloud.kavia.ai:3001
+   *
+   * Important:
+   * - Our Express backend mounts routes at BOTH `/` and `/api`, but frontend should consistently use `/api`
+   *   to avoid accidental mixing (some proxies/CDNs treat these paths differently).
    */
   const raw =
     import.meta.env.VITE_API_BASE ??
@@ -63,7 +69,12 @@ export function getApiBaseConfig(): ApiBaseConfig {
     "";
 
   const baseUrl = raw.endsWith("/") ? raw.slice(0, -1) : raw;
-  return { baseUrl };
+
+  // Canonical API prefix for this backend.
+  // (If the frontend is reverse-proxied, baseUrl may be "", and this becomes "/api".)
+  const apiPrefix = "/api";
+
+  return { baseUrl, apiPrefix };
 }
 
 async function getAuthHeader(): Promise<string | null> {
@@ -147,8 +158,12 @@ export async function apiRequest<TResponse>(
     throw new ApiError(`apiRequest path must start with '/'. Received: ${path}`);
   }
 
-  const { baseUrl } = getApiBaseConfig();
-  const url = `${baseUrl}${path}`;
+  const { baseUrl, apiPrefix } = getApiBaseConfig();
+
+  // Always route through the backend's canonical `/api` mount.
+  // If caller already provided `/api/...`, don't double-prefix.
+  const normalizedPath = path.startsWith(apiPrefix + "/") || path === apiPrefix ? path : `${apiPrefix}${path}`;
+  const url = `${baseUrl}${normalizedPath}`;
 
   const headers = new Headers(init?.headers ?? {});
   // Always request JSON by default; backend can still return non-JSON.
