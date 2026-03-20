@@ -68,12 +68,12 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className="relative text-sm font-medium text-gray-700 transition hover:text-gray-900"
+      className="relative text-sm font-medium text-gray-700 transition-colors hover:text-gray-900"
     >
       <span>{children}</span>
       <motion.span
         layoutId="nav-underline"
-        className="absolute -bottom-1 left-0 right-0 h-px origin-left bg-gray-900/50"
+        className="absolute -bottom-0.5 left-0 right-0 h-px origin-left bg-gray-900/45"
         initial={{ scaleX: 0 }}
         whileHover={{ scaleX: 1 }}
         transition={{ duration: 0.2 }}
@@ -91,8 +91,8 @@ export function MarketingHero() {
         <div className="absolute -top-24 left-1/2 h-72 w-[56rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-500/15 via-cyan-500/10 to-gray-50 opacity-80 blur-3xl" />
       </div>
 
-      <Container className="relative py-14 md:py-24">
-        <div className="grid gap-10 md:grid-cols-12 md:items-center">
+      <Container className="relative py-12 md:py-24">
+        <div className="grid gap-10 md:grid-cols-12 md:items-center lg:gap-12">
           <div className="md:col-span-7">
             <Badge className="mb-5">
               <span className="h-2 w-2 rounded-full bg-blue-500" />
@@ -155,7 +155,7 @@ export function MarketingHero() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.08 }}
-              className="rounded-2xl border border-gray-200 bg-white shadow-sm"
+              className="rounded-2xl border border-gray-200 bg-white shadow-sm md:mt-1"
             >
               <div className="border-b border-gray-100 p-5">
                 <div className="flex items-center justify-between">
@@ -190,7 +190,7 @@ export function MarketingHero() {
                           {row.meta}
                         </p>
                       </div>
-                      <div className="flex min-w-[3.5rem] flex-none items-center justify-end gap-2 text-xs text-gray-600">
+                      <div className="flex min-w-[3.75rem] flex-none items-center justify-end gap-2 text-xs tabular-nums text-gray-600">
                         <FontAwesomeIcon
                           icon={faChartLine}
                           className="h-3.5 w-3.5"

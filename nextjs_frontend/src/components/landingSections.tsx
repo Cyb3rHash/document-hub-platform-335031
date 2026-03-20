@@ -27,7 +27,7 @@ const cardMotion = {
 export function FeaturesSection() {
   /** Feature grid section for the landing page. */
   return (
-    <section id="features" className="py-16 md:py-20">
+    <section id="features" className="py-14 md:py-20">
       <Container>
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div>
@@ -35,7 +35,7 @@ export function FeaturesSection() {
               <FontAwesomeIcon icon={faWandMagicSparkles} className="h-3.5 w-3.5 text-blue-600" />
               Built for modern document workflows
             </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-900 md:text-[2rem]">
               Everything you need to publish and manage documents.
             </h2>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
@@ -44,7 +44,7 @@ export function FeaturesSection() {
               signals.
             </p>
           </div>
-          <Link href="/signup">
+          <Link href="/signup" className="md:pb-1">
             <Button variant="secondary">Start free</Button>
           </Link>
         </div>
@@ -109,7 +109,7 @@ function FeatureCard({
 export function SecuritySection() {
   /** Security and controls section for the landing page. */
   return (
-    <section id="security" className="py-16 md:py-20">
+    <section id="security" className="py-14 md:py-20">
       <Container>
         <div className="grid items-center gap-10 lg:grid-cols-12">
           <div className="lg:col-span-6">
@@ -117,7 +117,7 @@ export function SecuritySection() {
               <FontAwesomeIcon icon={faShieldHalved} className="h-3.5 w-3.5 text-blue-600" />
               Security-first by design
             </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-900 md:text-[2rem]">
               Control visibility with confidence.
             </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
@@ -214,7 +214,7 @@ function ModeRow({ title, detail }: { title: string; detail: string }) {
 export function PricingSection() {
   /** Lightweight pricing section with a primary CTA. */
   return (
-    <section id="pricing" className="py-16 md:py-20">
+    <section id="pricing" className="py-14 md:py-20">
       <Container>
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm md:p-10">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
@@ -223,7 +223,7 @@ export function PricingSection() {
                 <FontAwesomeIcon icon={faShieldHalved} className="h-3.5 w-3.5 text-blue-600" />
                 Simple pricing
               </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-gray-900">
+              <h2 className="text-3xl font-semibold tracking-tight text-gray-900 md:text-[2rem]">
                 Start free. Upgrade when you need more.
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">

@@ -27,8 +27,25 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Improve overall typography rhythm (more "premium" default feel) */
+  line-height: 1.5;
 }
 
 ::selection {
   background: rgba(59, 130, 246, 0.2);
+}
+
+/* Subtle global defaults for better marketing rhythm without changing content */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  text-underline-offset: 3px;
 }
