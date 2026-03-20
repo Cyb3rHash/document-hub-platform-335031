@@ -29,12 +29,11 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol";
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Improve overall typography rhythm (more "premium" default feel) */
   line-height: 1.55;
 }
 
@@ -42,7 +41,6 @@ body {
   background: rgba(59, 130, 246, 0.2);
 }
 
-/* Subtle global defaults for better marketing rhythm without changing content */
 h1,
 h2,
 h3 {
@@ -55,4 +53,26 @@ p {
 
 a {
   text-underline-offset: 3px;
+}
+
+/* Subtle, enterprise-friendly scrollbars (best-effort; varies by browser) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) transparent; /* slate-400 */
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+  border: 3px solid transparent;
+  background-clip: content-box;
 }

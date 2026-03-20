@@ -8,7 +8,9 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Button, Input } from "@/components/ui";
 import { supabase } from "@/utils/supabaseClient";
 
+// PUBLIC_INTERFACE
 export default function LoginPage() {
+  /** Login page (Supabase email/password). */
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -58,39 +60,29 @@ export default function LoginPage() {
     >
       <form onSubmit={onSubmit} className="grid gap-4">
         <div className="grid gap-4">
-          <div className="relative">
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="you@company.com"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={setEmail}
-            />
-            <FontAwesomeIcon
-              icon={faEnvelope}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
-            />
-          </div>
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="you@company.com"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={setEmail}
+            rightAdornment={<FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />}
+          />
 
-          <div className="relative">
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="Your password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={setPassword}
-            />
-            <FontAwesomeIcon
-              icon={faLock}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
-            />
-          </div>
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            placeholder="Your password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={setPassword}
+            rightAdornment={<FontAwesomeIcon icon={faLock} className="h-4 w-4" />}
+          />
         </div>
 
         <Button type="submit" disabled={!canSubmit || loading} className="w-full">
@@ -109,20 +101,20 @@ export default function LoginPage() {
           animate={{ height: error || success ? "auto" : 0, opacity: error || success ? 1 : 0 }}
           className="overflow-hidden"
         >
-          {error && (
+          {error ? (
             <div className="mt-1 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
-          )}
-          {success && (
+          ) : null}
+          {success ? (
             <div className="mt-1 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               {success}
             </div>
-          )}
+          ) : null}
         </motion.div>
 
         <p className="text-xs leading-relaxed text-gray-500">
-          If you don’t have an account, create one from the panel on the right.
+          After signing in, continue to the workspace to upload and manage documents.
         </p>
       </form>
     </AuthShell>

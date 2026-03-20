@@ -1,14 +1,28 @@
 import React from "react";
+import Link from "next/link";
+import { Button, Card, CardBody, PageHeader } from "@/components/ui";
 
+// PUBLIC_INTERFACE
 export default function NotFound() {
+  /** Global not-found page. */
   return (
-    <main className="app-container">
-      <section className="card" role="alert" aria-live="assertive">
-        <header className="header">
-          <h1 className="title">404 – Page Not Found</h1>
-          <p className="subtitle">The page you’re looking for doesn’t exist.</p>
-        </header>
-      </section>
-    </main>
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+        <Card>
+          <PageHeader title="Page not found" subtitle="The page you’re looking for doesn’t exist or has moved." />
+          <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-600">Return to the landing page or open the application workspace.</p>
+            <div className="flex items-center gap-2">
+              <Link href="/">
+                <Button variant="secondary">Go to landing</Button>
+              </Link>
+              <Link href="/app">
+                <Button>Go to app</Button>
+              </Link>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    </div>
   );
 }

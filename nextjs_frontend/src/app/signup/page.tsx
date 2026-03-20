@@ -3,18 +3,15 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faEnvelope,
-  faLock,
-  faUser,
-  faSpinner,
-} from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faLock, faUser, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button, Input } from "@/components/ui";
 import { supabase } from "@/utils/supabaseClient";
 import { getURL } from "@/utils/getURL";
 
+// PUBLIC_INTERFACE
 export default function SignupPage() {
+  /** Signup page (Supabase email/password). */
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,9 +47,7 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError;
 
-      setSuccess(
-        "Account created. If email confirmation is enabled, check your inbox to verify your address."
-      );
+      setSuccess("Account created. If email confirmation is enabled, check your inbox to verify your address.");
     } catch (err: unknown) {
       const message =
         typeof err === "object" && err && "message" in err
@@ -76,56 +71,41 @@ export default function SignupPage() {
     >
       <form onSubmit={onSubmit} className="grid gap-4">
         <div className="grid gap-4">
-          <div className="relative">
-            <Input
-              label="Full name"
-              name="fullName"
-              type="text"
-              placeholder="Your name"
-              autoComplete="name"
-              required
-              value={fullName}
-              onChange={setFullName}
-            />
-            <FontAwesomeIcon
-              icon={faUser}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
-            />
-          </div>
+          <Input
+            label="Full name"
+            name="fullName"
+            type="text"
+            placeholder="Your name"
+            autoComplete="name"
+            required
+            value={fullName}
+            onChange={setFullName}
+            rightAdornment={<FontAwesomeIcon icon={faUser} className="h-4 w-4" />}
+          />
 
-          <div className="relative">
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="you@company.com"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={setEmail}
-            />
-            <FontAwesomeIcon
-              icon={faEnvelope}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
-            />
-          </div>
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="you@company.com"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={setEmail}
+            rightAdornment={<FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />}
+          />
 
-          <div className="relative">
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="At least 6 characters"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={setPassword}
-            />
-            <FontAwesomeIcon
-              icon={faLock}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
-            />
-          </div>
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            placeholder="At least 6 characters"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={setPassword}
+            rightAdornment={<FontAwesomeIcon icon={faLock} className="h-4 w-4" />}
+          />
         </div>
 
         <Button type="submit" disabled={!canSubmit || loading} className="w-full">
@@ -144,21 +124,20 @@ export default function SignupPage() {
           animate={{ height: error || success ? "auto" : 0, opacity: error || success ? 1 : 0 }}
           className="overflow-hidden"
         >
-          {error && (
+          {error ? (
             <div className="mt-1 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
-          )}
-          {success && (
+          ) : null}
+          {success ? (
             <div className="mt-1 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               {success}
             </div>
-          )}
+          ) : null}
         </motion.div>
 
         <p className="text-xs leading-relaxed text-gray-500">
-          By creating an account, you agree to your organization’s policies for
-          document handling and sharing.
+          By creating an account, you agree to your organization’s policies for document handling and sharing.
         </p>
       </form>
     </AuthShell>
