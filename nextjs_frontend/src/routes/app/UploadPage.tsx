@@ -8,6 +8,7 @@ import {
   faCheck,
   faSpinner,
   faArrowRight,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { Button, Card, CardBody, CardHeader, PageHeader, cn, Input } from "@/components/ui";
@@ -27,31 +28,36 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadedId, setUploadedId] = useState<string | null>(null);
 
-  const canUpload = useMemo(() => Boolean(selected) && !uploading, [selected, uploading]);
+  const [deleting, setDeleting] = useState(false);
 
-  const onPick = useCallback((file: File | null) => {
-    setError(null);
-    setUploadedId(null);
-    setSelected(null);
+  const canUpload = useMemo(() => Boolean(selected) && !uploading && !deleting, [selected, uploading, deleting]);
 
-    if (!file) return;
+  const onPick = useCallback(
+    (file: File | null) => {
+      setError(null);
+      setUploadedId(null);
+      setSelected(null);
 
-    const sizeMb = file.size / (1024 * 1024);
-    const name = file.name.toLowerCase();
-    const okType = ACCEPTED.some((ext) => name.endsWith(ext));
+      if (!file) return;
 
-    if (!okType) {
-      setError(`Unsupported file type. Allowed: ${ACCEPTED.join(", ")}`);
-      return;
-    }
-    if (sizeMb > MAX_MB) {
-      setError(`File too large. Max ${MAX_MB}MB.`);
-      return;
-    }
+      const sizeMb = file.size / (1024 * 1024);
+      const name = file.name.toLowerCase();
+      const okType = ACCEPTED.some((ext) => name.endsWith(ext));
 
-    setSelected(file);
-    if (!title.trim()) setTitle(file.name.replace(/\.[^/.]+$/, ""));
-  }, [title]);
+      if (!okType) {
+        setError(`Unsupported file type. Allowed: ${ACCEPTED.join(", ")}`);
+        return;
+      }
+      if (sizeMb > MAX_MB) {
+        setError(`File too large. Max ${MAX_MB}MB.`);
+        return;
+      }
+
+      setSelected(file);
+      if (!title.trim()) setTitle(file.name.replace(/\.[^/.]+$/, ""));
+    },
+    [title]
+  );
 
   async function onUpload() {
     setError(null);
@@ -70,6 +76,31 @@ export default function UploadPage() {
       setError(message);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function onDeleteUploaded() {
+    if (!uploadedId) return;
+
+    const confirmed = window.confirm("Delete this uploaded document? This cannot be undone.");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await documentHubApi.deleteDocument(uploadedId);
+      // Ensure Explore/Viewer lists refresh after mutation.
+      invalidateDocumentsCache();
+
+      // Clear the success state; keep title so user can re-upload if desired.
+      setUploadedId(null);
+      setSelected(null);
+    } catch (e: unknown) {
+      const message =
+        typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : "Delete failed.";
+      setError(message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -130,7 +161,7 @@ export default function UploadPage() {
                         type="file"
                         className="hidden"
                         onChange={(e) => onPick(e.target.files?.[0] ?? null)}
-                        disabled={uploading}
+                        disabled={uploading || deleting}
                       />
                     </label>
                     <Button variant="secondary" disabled>
@@ -143,7 +174,7 @@ export default function UploadPage() {
                       <div className="flex items-start gap-2">
                         <FontAwesomeIcon icon={faTriangleExclamation} className="mt-0.5 h-4 w-4" />
                         <div>
-                          <p className="font-semibold">Upload blocked</p>
+                          <p className="font-semibold">Something went wrong</p>
                           <p className="mt-1">{error}</p>
                         </div>
                       </div>
@@ -179,6 +210,15 @@ export default function UploadPage() {
                             Back to Explore
                           </Button>
                         </Link>
+                        <Button
+                          variant="danger"
+                          className="px-3 py-2"
+                          disabled={deleting}
+                          onClick={() => void onDeleteUploaded()}
+                        >
+                          <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                          {deleting ? "Deleting…" : "Delete"}
+                        </Button>
                       </div>
                     </div>
                   ) : null}
