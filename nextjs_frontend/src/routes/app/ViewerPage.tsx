@@ -47,6 +47,30 @@ function inferIsPdf(input: { mime_type?: unknown; original_filename?: unknown; s
   return guess.endsWith(".pdf");
 }
 
+/**
+ * Many storage backends attach `Content-Disposition: attachment` to signed URLs, which forces download in a new tab.
+ * For preview, we do a best-effort fetch->Blob->blob: URL and open that, which usually favors inline display.
+ *
+ * If the fetch is blocked by CORS (common), we fall back to opening the signed URL directly.
+ */
+async function openSignedUrlInline(url: string, title?: string): Promise<void> {
+  try {
+    const res = await fetch(url, { method: "GET", credentials: "omit" });
+    if (!res.ok) throw new Error(`Failed to fetch file: HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Note: a blob URL isn't subject to the origin server's Content-Disposition, so browsers generally render inline when supported.
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+    // Revoke eventually to avoid memory leaks, but keep it alive long enough for the new tab to load.
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+  } catch {
+    // Fallback: open the signed URL directly (may still download depending on server headers).
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 type PdfState =
   | { kind: "idle" }
   | { kind: "loading"; url: string }
@@ -99,13 +123,17 @@ export default function ViewerPage() {
   async function openInNewTab() {
     if (!activeId) return;
     const { url } = await documentHubApi.getDocumentViewUrl(activeId);
-    window.open(url, "_blank", "noopener,noreferrer");
+
+    // Prefer inline display when possible (blob URL), but gracefully fall back.
+    await openSignedUrlInline(url, activeTitle);
   }
 
   async function download() {
     if (!activeId) return;
     const { url } = await documentHubApi.getDocumentViewUrl(activeId);
-    // Best-effort: open URL (backend/storage should set content-disposition if it wants a download)
+
+    // Explicit download action: use the backend-provided signed URL directly.
+    // If backend/storage sets Content-Disposition: attachment, this will download.
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
@@ -540,7 +568,7 @@ export default function ViewerPage() {
                     src={signedUrl}
                     title={activeTitle}
                     className="h-[28rem] w-full sm:h-[34rem]"
-                    sandbox="allow-same-origin allow-scripts allow-downloads allow-forms"
+                    sandbox="allow-same-origin allow-scripts allow-forms"
                   />
                   <div className="border-t border-gray-100 p-3 text-xs text-gray-500">
                     If the embedded preview does not load, use “Open in new tab” or “Download”.
