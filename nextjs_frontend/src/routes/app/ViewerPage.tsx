@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -9,20 +9,53 @@ import {
   faUpRightFromSquare,
   faDownload,
   faSpinner,
+  faTriangleExclamation,
+  faRotateRight,
+  faMagnifyingGlassPlus,
+  faMagnifyingGlassMinus,
 } from "@fortawesome/free-solid-svg-icons";
 import { useLocation } from "react-router-dom";
 import { Button, Card, CardBody, CardHeader, PageHeader, cn } from "@/components/ui";
 import { useDocuments, useDocument } from "@/hooks/documents";
 import { documentHubApi } from "@/api/documentHubApi";
 
+import * as pdfjsLib from "pdfjs-dist";
+
+// pdfjs-dist worker configuration for Vite.
+// Using `new URL(..., import.meta.url)` is the recommended approach in bundlers.
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+
 function useQueryParam(name: string): string | null {
   const location = useLocation();
   return useMemo(() => new URLSearchParams(location.search).get(name), [location.search, name]);
 }
 
+type ViewerMode = "pdf" | "iframe" | "none";
+
+/**
+ * Best-effort mime inference:
+ * - Backend returns mime_type on document rows, but frontend types may not yet include it.
+ * - We fall back to filename extension in storage_path/original_filename when available.
+ */
+function inferIsPdf(input: { mime_type?: unknown; original_filename?: unknown; storage_path?: unknown }): boolean {
+  const mime = typeof input.mime_type === "string" ? input.mime_type : "";
+  if (mime.toLowerCase().includes("application/pdf")) return true;
+
+  const filename = typeof input.original_filename === "string" ? input.original_filename : "";
+  const path = typeof input.storage_path === "string" ? input.storage_path : "";
+  const guess = (filename || path).toLowerCase();
+  return guess.endsWith(".pdf");
+}
+
+type PdfState =
+  | { kind: "idle" }
+  | { kind: "loading"; url: string }
+  | { kind: "ready"; url: string; pdf: pdfjsLib.PDFDocumentProxy; pageCount: number }
+  | { kind: "error"; url?: string; message: string };
+
 // PUBLIC_INTERFACE
 export default function ViewerPage() {
-  /** Viewer page connected to backend document read and view-url endpoints. */
+  /** Viewer page connected to backend document read and signed-url endpoints, rendering PDFs via PDF.js. */
   const initialId = useQueryParam("id");
 
   const [search, setSearch] = useState("");
@@ -39,7 +72,29 @@ export default function ViewerPage() {
   const detailQuery = useDocument(activeId);
 
   const activeTitle = detailQuery.data?.title ?? (activeId ? "Loading…" : "No document selected");
-  const activeVisibility = detailQuery.data?.visibility ?? undefined;
+
+  // IMPORTANT: DocumentDetail types in frontend are narrower than backend rows.
+  // We treat extra fields (mime_type, original_filename) as best-effort.
+  const detailAny = (detailQuery.data ?? {}) as unknown as Record<string, unknown>;
+  const activeVisibility = (detailAny.visibility as string | undefined) ?? undefined;
+  const isPdf = inferIsPdf({
+    mime_type: detailAny.mime_type,
+    original_filename: detailAny.original_filename,
+    storage_path: detailAny.storage_path,
+  });
+
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [signedUrlLoading, setSignedUrlLoading] = useState(false);
+  const [signedUrlError, setSignedUrlError] = useState<string | null>(null);
+
+  const [viewerMode, setViewerMode] = useState<ViewerMode>("none");
+
+  // PDF viewer state.
+  const [pdfState, setPdfState] = useState<PdfState>({ kind: "idle" });
+  const [pageNumber, setPageNumber] = useState(1);
+  const [zoom, setZoom] = useState(1.0);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   async function openInNewTab() {
     if (!activeId) return;
@@ -50,22 +105,175 @@ export default function ViewerPage() {
   async function download() {
     if (!activeId) return;
     const { url } = await documentHubApi.getDocumentViewUrl(activeId);
-    // Best-effort: open URL (backend should set content-disposition if it wants a download)
+    // Best-effort: open URL (backend/storage should set content-disposition if it wants a download)
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function refreshSignedUrl() {
+    if (!activeId) return;
+
+    setSignedUrlLoading(true);
+    setSignedUrlError(null);
+
+    try {
+      const res = await documentHubApi.getDocumentViewUrl(activeId, 900);
+      setSignedUrl(res.url);
+      setViewerMode(isPdf ? "pdf" : "iframe");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to load signed URL.";
+      setSignedUrl(null);
+      setViewerMode("none");
+      setSignedUrlError(msg);
+    } finally {
+      setSignedUrlLoading(false);
+    }
+  }
+
+  // When the active document changes, fetch a fresh signed URL and reset viewer state.
+  React.useEffect(() => {
+    setSignedUrl(null);
+    setSignedUrlError(null);
+    setViewerMode("none");
+
+    setPdfState({ kind: "idle" });
+    setPageNumber(1);
+    setZoom(1.0);
+
+    if (!activeId) return;
+
+    // Fire and forget; state updates are handled inside.
+    void refreshSignedUrl();
+  }, [activeId]);
+
+  // Load PDF document when we have a signed URL AND the doc is inferred to be a PDF.
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!signedUrl || !activeId) return;
+      if (!isPdf) return;
+
+      setPdfState({ kind: "loading", url: signedUrl });
+
+      try {
+        // pdf.js can load via URL directly; for signed URLs this is typical.
+        const task = pdfjsLib.getDocument({
+          url: signedUrl,
+          // With signed URLs we should not send any extra credentials.
+          withCredentials: false,
+        });
+
+        const pdf = await task.promise;
+        if (cancelled) return;
+
+        setPdfState({ kind: "ready", url: signedUrl, pdf, pageCount: pdf.numPages });
+        setPageNumber(1);
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Failed to load PDF.";
+        setPdfState({ kind: "error", url: signedUrl, message });
+        // Fallback to iframe mode if PDF.js fails (e.g., CORS issue, blocked worker, etc.)
+        setViewerMode("iframe");
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedUrl, activeId, isPdf]);
+
+  // Render the current PDF page to canvas when ready / page changes / zoom changes.
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function render() {
+      if (viewerMode !== "pdf") return;
+      if (pdfState.kind !== "ready") return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Cancel any in-flight render (user clicked quickly).
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {
+          // ignore
+        }
+        renderTaskRef.current = null;
+      }
+
+      try {
+        const page = await pdfState.pdf.getPage(pageNumber);
+        if (cancelled) return;
+
+        const viewport = page.getViewport({ scale: zoom });
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Set physical pixel size for crisp rendering.
+        const outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+
+        const task = page.render({ canvasContext: ctx, viewport, transform });
+        renderTaskRef.current = task;
+        await task.promise;
+
+        renderTaskRef.current = null;
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Failed to render page.";
+        setPdfState({ kind: "error", url: signedUrl ?? undefined, message });
+        setViewerMode("iframe");
+      }
+    }
+
+    void render();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerMode, pdfState, pageNumber, zoom, signedUrl]);
+
+  const canPrev = pdfState.kind === "ready" ? pageNumber > 1 : false;
+  const canNext = pdfState.kind === "ready" ? pageNumber < pdfState.pageCount : false;
+
+  function goPrev() {
+    if (!canPrev) return;
+    setPageNumber((p) => Math.max(1, p - 1));
+  }
+
+  function goNext() {
+    if (!canNext) return;
+    if (pdfState.kind !== "ready") return;
+    setPageNumber((p) => Math.min(pdfState.pageCount, p + 1));
+  }
+
+  function zoomIn() {
+    setZoom((z) => Math.min(3, Math.round((z + 0.1) * 10) / 10));
+  }
+
+  function zoomOut() {
+    setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10));
   }
 
   return (
     <div className="grid gap-6">
       <PageHeader
         title="Viewer"
-        subtitle="Review documents with access-aware controls and backend-provided view/download URLs."
+        subtitle="Review documents with access-aware controls and backend-provided signed URLs."
         actions={
           <>
-            <Button variant="secondary" onClick={() => void openInNewTab()} disabled={!activeId}>
+            <Button variant="secondary" onClick={() => void openInNewTab()} disabled={!activeId || signedUrlLoading}>
               <FontAwesomeIcon icon={faUpRightFromSquare} className="h-4 w-4" />
               Open in new tab
             </Button>
-            <Button variant="secondary" onClick={() => void download()} disabled={!activeId}>
+            <Button variant="secondary" onClick={() => void download()} disabled={!activeId || signedUrlLoading}>
               <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />
               Download
             </Button>
@@ -158,15 +366,85 @@ export default function ViewerPage() {
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" className="px-3 py-2" disabled>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  className="px-3 py-2"
+                  onClick={() => void refreshSignedUrl()}
+                  disabled={!activeId || signedUrlLoading}
+                >
+                  <FontAwesomeIcon icon={signedUrlLoading ? faSpinner : faRotateRight} spin={signedUrlLoading} className="h-3.5 w-3.5" />
+                  Refresh URL
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2"
+                  onClick={goPrev}
+                  disabled={!activeId || signedUrlLoading || viewerMode !== "pdf" || !canPrev}
+                >
                   <FontAwesomeIcon icon={faChevronLeft} className="h-3.5 w-3.5" />
                   Prev
                 </Button>
-                <Button variant="ghost" className="px-3 py-2" disabled>
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2"
+                  onClick={goNext}
+                  disabled={!activeId || signedUrlLoading || viewerMode !== "pdf" || !canNext}
+                >
                   Next
                   <FontAwesomeIcon icon={faChevronRight} className="h-3.5 w-3.5" />
                 </Button>
+
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2"
+                  onClick={zoomOut}
+                  disabled={!activeId || signedUrlLoading || viewerMode !== "pdf" || pdfState.kind !== "ready"}
+                  title="Zoom out"
+                >
+                  <FontAwesomeIcon icon={faMagnifyingGlassMinus} className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2"
+                  onClick={zoomIn}
+                  disabled={!activeId || signedUrlLoading || viewerMode !== "pdf" || pdfState.kind !== "ready"}
+                  title="Zoom in"
+                >
+                  <FontAwesomeIcon icon={faMagnifyingGlassPlus} className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                {viewerMode === "pdf" ? (
+                  <span>
+                    Page{" "}
+                    <span className="font-semibold text-gray-700">
+                      {pdfState.kind === "ready" ? pageNumber : "—"}
+                    </span>
+                    {pdfState.kind === "ready" ? ` / ${pdfState.pageCount}` : ""}
+                    {" · "}Zoom <span className="font-semibold text-gray-700">{Math.round(zoom * 100)}%</span>
+                  </span>
+                ) : viewerMode === "iframe" ? (
+                  <span>Embedded preview (fallback mode)</span>
+                ) : (
+                  <span>Select a document to view.</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5",
+                    isPdf ? "border-blue-100 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600"
+                  )}
+                >
+                  {isPdf ? "PDF" : "Non-PDF"}
+                </span>
               </div>
             </div>
           </div>
@@ -177,15 +455,107 @@ export default function ViewerPage() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28 }}
-              className="mx-auto grid max-w-2xl place-items-center rounded-2xl border border-gray-200 bg-white px-6 py-16 shadow-sm"
+              className="mx-auto grid max-w-4xl"
             >
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-900">Viewer placeholder</p>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  The viewer shell is wired to real backend metadata + signed URL actions. Next step is to render the
-                  document content (PDF.js or an iframe) using the URL returned by the backend.
-                </p>
-              </div>
+              {!activeId ? (
+                <div className="grid place-items-center rounded-2xl border border-gray-200 bg-white px-6 py-16 shadow-sm">
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-gray-900">No document selected</p>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600">Choose a document from the library to start viewing.</p>
+                  </div>
+                </div>
+              ) : signedUrlError ? (
+                <div className="rounded-2xl border border-red-200 bg-white px-6 py-10 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 grid h-9 w-9 place-items-center rounded-xl bg-red-50 text-red-600 ring-1 ring-red-100">
+                      <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Unable to load document URL</p>
+                      <p className="mt-1 text-sm text-gray-600">{signedUrlError}</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => void refreshSignedUrl()} disabled={signedUrlLoading}>
+                          <FontAwesomeIcon icon={faRotateRight} className="h-4 w-4" />
+                          Try again
+                        </Button>
+                        <Button variant="secondary" onClick={() => void openInNewTab()} disabled={!activeId}>
+                          <FontAwesomeIcon icon={faUpRightFromSquare} className="h-4 w-4" />
+                          Open in new tab
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : signedUrlLoading && !signedUrl ? (
+                <div className="grid place-items-center rounded-2xl border border-gray-200 bg-white px-6 py-16 shadow-sm">
+                  <div className="text-center text-sm text-gray-600">
+                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2 h-4 w-4" />
+                    Loading viewer…
+                  </div>
+                </div>
+              ) : viewerMode === "pdf" ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  {pdfState.kind === "loading" ? (
+                    <div className="grid place-items-center px-6 py-16 text-sm text-gray-600">
+                      <FontAwesomeIcon icon={faSpinner} spin className="mr-2 h-4 w-4" />
+                      Loading PDF…
+                    </div>
+                  ) : pdfState.kind === "error" ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-6 text-sm text-amber-900">
+                      <div className="flex items-start gap-3">
+                        <FontAwesomeIcon icon={faTriangleExclamation} className="mt-0.5 h-4 w-4" />
+                        <div className="min-w-0">
+                          <p className="font-semibold">PDF rendering failed</p>
+                          <p className="mt-1 text-amber-900/80">{pdfState.message}</p>
+                          <p className="mt-3 text-amber-900/80">
+                            Falling back to embedded preview. You can also open in a new tab.
+                          </p>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Button variant="secondary" onClick={() => setViewerMode("iframe")} disabled={!signedUrl}>
+                              Use fallback preview
+                            </Button>
+                            <Button variant="secondary" onClick={() => void openInNewTab()} disabled={!activeId}>
+                              <FontAwesomeIcon icon={faUpRightFromSquare} className="h-4 w-4" />
+                              Open in new tab
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : pdfState.kind === "ready" ? (
+                    <div className="grid justify-center overflow-auto">
+                      <canvas ref={canvasRef} className="block rounded-xl bg-white" />
+                    </div>
+                  ) : (
+                    <div className="grid place-items-center px-6 py-16 text-sm text-gray-600">
+                      <FontAwesomeIcon icon={faSpinner} spin className="mr-2 h-4 w-4" />
+                      Preparing…
+                    </div>
+                  )}
+                </div>
+              ) : viewerMode === "iframe" && signedUrl ? (
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  {/* Safe fallback for non-PDFs (and also as a PDF fallback if PDF.js cannot render due to CORS). */}
+                  <iframe
+                    src={signedUrl}
+                    title={activeTitle}
+                    className="h-[28rem] w-full sm:h-[34rem]"
+                    sandbox="allow-same-origin allow-scripts allow-downloads allow-forms"
+                  />
+                  <div className="border-t border-gray-100 p-3 text-xs text-gray-500">
+                    If the embedded preview does not load, use “Open in new tab” or “Download”.
+                  </div>
+                </div>
+              ) : (
+                <div className="grid place-items-center rounded-2xl border border-gray-200 bg-white px-6 py-16 shadow-sm">
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-gray-900">Ready to view</p>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                      {signedUrl ? "Rendering will start automatically." : "Fetching a signed URL…"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </Card>

@@ -104,21 +104,42 @@ export const documentHubApi = {
     throw lastErr;
   },
 
-  /** Get a view/download URL (signed URL or proxy URL) for a document. */
-  async getDocumentViewUrl(id: string): Promise<{ url: string }> {
+  /** Get a signed URL for viewing/downloading the document file. */
+  async getDocumentViewUrl(id: string, expiresInSeconds?: number): Promise<{ url: string; expiresIn?: number }> {
+    // Backend canonical endpoint: GET /documents/:id/signed-url
+    // Response is envelope-unwrapped by apiRequest() into: { signedUrl, expiresIn }
+    const query = expiresInSeconds ? `?expiresIn=${encodeURIComponent(String(expiresInSeconds))}` : "";
+
     const candidates = [
-      `/api/documents/${id}/view`,
-      `/api/documents/${id}/url`,
-      `/api/documents/${id}/download`,
-      `/documents/${id}/view`,
-      `/documents/${id}/url`,
-      `/documents/${id}/download`,
+      `/documents/${id}/signed-url${query}`,
+      `/api/documents/${id}/signed-url${query}`,
+      // Backward-compat fallbacks (if older routes exist in some environments)
+      `/documents/${id}/url${query}`,
+      `/api/documents/${id}/url${query}`,
+      `/documents/${id}/download${query}`,
+      `/api/documents/${id}/download${query}`,
     ];
 
     let lastErr: unknown = null;
     for (const path of candidates) {
       try {
-        return await apiRequest<{ url: string }>(path, { method: "GET" });
+        const res = await apiRequest<unknown>(path, { method: "GET" });
+
+        // Normalize the various possible shapes into `{ url }`.
+        if (res && typeof res === "object") {
+          const obj = res as Record<string, unknown>;
+          const signedUrl = typeof obj.signedUrl === "string" ? obj.signedUrl : null;
+          const url = typeof obj.url === "string" ? obj.url : null;
+          const expiresIn = typeof obj.expiresIn === "number" ? obj.expiresIn : undefined;
+
+          const finalUrl = signedUrl ?? url;
+          if (finalUrl) return { url: finalUrl, expiresIn };
+        }
+
+        // If backend returns just a string (unlikely), accept it.
+        if (typeof res === "string" && res.trim().length) return { url: res };
+
+        throw new Error("Signed URL response did not include a url/signedUrl field.");
       } catch (e) {
         lastErr = e;
       }
