@@ -106,6 +106,102 @@ export const documentHubApi = {
 
   /** Get a signed URL for viewing/downloading the document file. */
   async getDocumentViewUrl(id: string, expiresInSeconds?: number): Promise<{ url: string; expiresIn?: number }> {
+     // Backend canonical endpoint: GET /documents/:id/signed-url
+     // Response is envelope-unwrapped by apiRequest() into: { signedUrl, expiresIn }
+     const query = expiresInSeconds ? `?expiresIn=${encodeURIComponent(String(expiresInSeconds))}` : "";
+
+     const candidates = [
+       `/documents/${id}/signed-url${query}`,
+       `/api/documents/${id}/signed-url${query}`,
+       // Backward-compat fallbacks (if older routes exist in some environments)
+       `/documents/${id}/url${query}`,
+       `/api/documents/${id}/url${query}`,
+       `/documents/${id}/download${query}`,
+       `/api/documents/${id}/download${query}`,
+     ];
+
+     let lastErr: unknown = null;
+     for (const path of candidates) {
+       try {
+         const res = await apiRequest<unknown>(path, { method: "GET" });
+
+         // Normalize the various possible shapes into `{ url }`.
+         if (res && typeof res === "object") {
+           const obj = res as Record<string, unknown>;
+           const signedUrl = typeof obj.signedUrl === "string" ? obj.signedUrl : null;
+           const url = typeof obj.url === "string" ? obj.url : null;
+           const expiresIn = typeof obj.expiresIn === "number" ? obj.expiresIn : undefined;
+
+           const finalUrl = signedUrl ?? url;
+           if (finalUrl) return { url: finalUrl, expiresIn };
+         }
+
+         // If backend returns just a string (unlikely), accept it.
+         if (typeof res === "string" && res.trim().length) return { url: res };
+
+         throw new Error("Signed URL response did not include a url/signedUrl field.");
+       } catch (e) {
+         lastErr = e;
+       }
+     }
+     throw lastErr;
+   },
+=======
+  /**
+   * Return a SAME-ORIGIN URL for inline preview.
+   *
+   * This does not fetch anything; it only returns the path the viewer should embed.
+   * The backend will stream the file and force `Content-Disposition: inline`.
+   */
+  async getDocumentPreviewUrl(id: string, expiresInSeconds?: number): Promise<{ url: string }> {
+    const query = expiresInSeconds ? `?expiresIn=${encodeURIComponent(String(expiresInSeconds))}` : "";
+    // We intentionally return a relative URL so the iframe/PDF.js load is same-origin w.r.t the API host,
+    // which avoids cross-site embed restrictions.
+    return { url: `/api/documents/${encodeURIComponent(id)}/preview${query}` };
+  },
+
+  /** Get a signed URL for viewing/downloading the document file. */
+  async getDocumentViewUrl(id: string, expiresInSeconds?: number): Promise<{ url: string; expiresIn?: number }> {
+    // Backend canonical endpoint: GET /documents/:id/signed-url
+    // Response is envelope-unwrapped by apiRequest() into: { signedUrl, expiresIn }
+    const query = expiresInSeconds ? `?expiresIn=${encodeURIComponent(String(expiresInSeconds))}` : "";
+
+    const candidates = [
+      `/documents/${id}/signed-url${query}`,
+      `/api/documents/${id}/signed-url${query}`,
+      // Backward-compat fallbacks (if older routes exist in some environments)
+      `/documents/${id}/url${query}`,
+      `/api/documents/${id}/url${query}`,
+      `/documents/${id}/download${query}`,
+      `/api/documents/${id}/download${query}`,
+    ];
+
+    let lastErr: unknown = null;
+    for (const path of candidates) {
+      try {
+        const res = await apiRequest<unknown>(path, { method: "GET" });
+
+        // Normalize the various possible shapes into `{ url }`.
+        if (res && typeof res === "object") {
+          const obj = res as Record<string, unknown>;
+          const signedUrl = typeof obj.signedUrl === "string" ? obj.signedUrl : null;
+          const url = typeof obj.url === "string" ? obj.url : null;
+          const expiresIn = typeof obj.expiresIn === "number" ? obj.expiresIn : undefined;
+
+          const finalUrl = signedUrl ?? url;
+          if (finalUrl) return { url: finalUrl, expiresIn };
+        }
+
+        // If backend returns just a string (unlikely), accept it.
+        if (typeof res === "string" && res.trim().length) return { url: res };
+
+        throw new Error("Signed URL response did not include a url/signedUrl field.");
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  },
     // Backend canonical endpoint: GET /documents/:id/signed-url
     // Response is envelope-unwrapped by apiRequest() into: { signedUrl, expiresIn }
     const query = expiresInSeconds ? `?expiresIn=${encodeURIComponent(String(expiresInSeconds))}` : "";

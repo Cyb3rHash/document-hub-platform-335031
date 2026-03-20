@@ -107,6 +107,7 @@ export default function ViewerPage() {
     storage_path: detailAny.storage_path,
   });
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [signedUrlLoading, setSignedUrlLoading] = useState(false);
   const [signedUrlError, setSignedUrlError] = useState<string | null>(null);
@@ -122,9 +123,10 @@ export default function ViewerPage() {
 
   async function openInNewTab() {
     if (!activeId) return;
-    const { url } = await documentHubApi.getDocumentViewUrl(activeId);
 
-    // Prefer inline display when possible (blob URL), but gracefully fall back.
+    // Use the same-origin preview proxy for reliable inline rendering in a new tab.
+    // This avoids cross-site embed/privacy blocking from Supabase signed URLs.
+    const { url } = await documentHubApi.getDocumentPreviewUrl(activeId, 900);
     await openSignedUrlInline(url, activeTitle);
   }
 
@@ -144,11 +146,18 @@ export default function ViewerPage() {
     setSignedUrlError(null);
 
     try {
+      // Preview URL is same-origin stream and should be used for embedding and PDF.js rendering.
+      const preview = await documentHubApi.getDocumentPreviewUrl(activeId, 900);
+      setPreviewUrl(preview.url);
+
+      // Signed URL is kept ONLY for explicit download action (and any legacy needs).
       const res = await documentHubApi.getDocumentViewUrl(activeId, 900);
       setSignedUrl(res.url);
+
       setViewerMode(isPdf ? "pdf" : "iframe");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to load signed URL.";
+      const msg = e instanceof Error ? e.message : "Failed to load preview.";
+      setPreviewUrl(null);
       setSignedUrl(null);
       setViewerMode("none");
       setSignedUrlError(msg);
@@ -159,6 +168,7 @@ export default function ViewerPage() {
 
   // When the active document changes, fetch a fresh signed URL and reset viewer state.
   React.useEffect(() => {
+    setPreviewUrl(null);
     setSignedUrl(null);
     setSignedUrlError(null);
     setViewerMode("none");
@@ -178,29 +188,28 @@ export default function ViewerPage() {
     let cancelled = false;
 
     async function load() {
-      if (!signedUrl || !activeId) return;
+      if (!previewUrl || !activeId) return;
       if (!isPdf) return;
 
-      setPdfState({ kind: "loading", url: signedUrl });
+      setPdfState({ kind: "loading", url: previewUrl });
 
       try {
-        // pdf.js can load via URL directly; for signed URLs this is typical.
+        // pdf.js loads via URL; use same-origin preview proxy for reliable browser behavior.
         const task = pdfjsLib.getDocument({
-          url: signedUrl,
-          // With signed URLs we should not send any extra credentials.
+          url: previewUrl,
           withCredentials: false,
         });
 
         const pdf = await task.promise;
         if (cancelled) return;
 
-        setPdfState({ kind: "ready", url: signedUrl, pdf, pageCount: pdf.numPages });
+        setPdfState({ kind: "ready", url: previewUrl, pdf, pageCount: pdf.numPages });
         setPageNumber(1);
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "Failed to load PDF.";
-        setPdfState({ kind: "error", url: signedUrl, message });
-        // Fallback to iframe mode if PDF.js fails (e.g., CORS issue, blocked worker, etc.)
+        setPdfState({ kind: "error", url: previewUrl, message });
+        // Fallback to iframe mode if PDF.js fails for any reason.
         setViewerMode("iframe");
       }
     }
@@ -209,7 +218,7 @@ export default function ViewerPage() {
     return () => {
       cancelled = true;
     };
-  }, [signedUrl, activeId, isPdf]);
+  }, [previewUrl, activeId, isPdf]);
 
   // Render the current PDF page to canvas when ready / page changes / zoom changes.
   React.useEffect(() => {
@@ -591,18 +600,15 @@ export default function ViewerPage() {
                     </div>
                   )}
                 </div>
-              ) : viewerMode === "iframe" && signedUrl ? (
+              ) : viewerMode === "iframe" && previewUrl ? (
                 <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                  {/* Safe fallback for non-PDFs (and also as a PDF fallback if PDF.js cannot render due to CORS). */}
+                  {/* Same-origin preview stream endpoint: more reliable than embedding Supabase signed URLs cross-site. */}
                   <iframe
-                    src={signedUrl}
+                    src={previewUrl}
                     title={activeTitle}
                     className="h-[28rem] w-full sm:h-[34rem]"
                     loading="lazy"
                     referrerPolicy="no-referrer"
-                    // Brave (and other privacy-focused browsers) can block cross-origin embeds more aggressively,
-                    // especially when the iframe is sandboxed with unnecessary capabilities.
-                    // For a simple file preview we do NOT need scripts; keep the sandbox as restrictive as possible.
                     sandbox="allow-same-origin allow-forms"
                     allow="fullscreen"
                   />
