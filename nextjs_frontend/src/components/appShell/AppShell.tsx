@@ -1,8 +1,5 @@
-"use client";
-
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -42,7 +39,9 @@ export function AppShell({
    * - Topbar with search placeholder + user menu stub
    * - Main content uses nested scroll area: sidebar and main scroll independently
    */
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -63,12 +62,9 @@ export function AppShell({
   );
 
   const activeHref = useMemo(() => {
-    // Prefer exact match first, then section match for nested routes.
     const exact = navItems.find((i) => i.href === pathname)?.href;
     if (exact) return exact;
-    const nested = navItems
-      .filter((i) => i.href !== "/app")
-      .find((i) => pathname?.startsWith(i.href));
+    const nested = navItems.filter((i) => i.href !== "/app").find((i) => pathname.startsWith(i.href));
     if (nested) return nested.href;
     return "/app";
   }, [navItems, pathname]);
@@ -85,7 +81,7 @@ export function AppShell({
           style={{ width: collapsed ? 76 : 272 }}
         >
           <div className="flex h-16 items-center justify-between gap-3 border-b border-gray-100 px-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white">
                 <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
               </span>
@@ -157,7 +153,7 @@ export function AppShell({
                 aria-label="Mobile sidebar"
               >
                 <div className="flex h-16 items-center justify-between border-b border-gray-100 px-4">
-                  <Link href="/" className="flex items-center gap-2">
+                  <Link to="/" className="flex items-center gap-2">
                     <span className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white">
                       <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
                     </span>
@@ -199,9 +195,7 @@ export function AppShell({
 
           {/* Main scroll area */}
           <main className="min-w-0 flex-1 overflow-auto">
-            <div className="mx-auto w-full max-w-[88rem] px-4 py-6 sm:px-6">
-              {children}
-            </div>
+            <div className="mx-auto w-full max-w-[88rem] px-4 py-6 sm:px-6">{children}</div>
           </main>
         </div>
       </div>
@@ -209,13 +203,7 @@ export function AppShell({
   );
 }
 
-function Topbar({
-  pageTitle,
-  onOpenMobile,
-}: {
-  pageTitle?: string;
-  onOpenMobile: () => void;
-}) {
+function Topbar({ pageTitle, onOpenMobile }: { pageTitle?: string; onOpenMobile: () => void }) {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200/70 bg-white/70 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[88rem] items-center justify-between gap-4 px-4 sm:px-6">
@@ -245,7 +233,7 @@ function Topbar({
           </div>
 
           <Link
-            href="/"
+            to="/"
             className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-gray-50"
           >
             Back to site
@@ -281,7 +269,7 @@ function NavSection({
           return (
             <li key={item.href}>
               <Link
-                href={item.href}
+                to={item.href}
                 className={cn(
                   "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
                   active ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"

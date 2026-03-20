@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import React from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -26,16 +24,11 @@ export function MarketingNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200/70 bg-gray-50/70 backdrop-blur">
       <Container className="flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-            <FontAwesomeIcon
-              icon={faFileShield}
-              className="h-4 w-4 text-blue-600"
-            />
+            <FontAwesomeIcon icon={faFileShield} className="h-4 w-4 text-blue-600" />
           </span>
-          <span className="text-sm font-semibold tracking-tight text-gray-900">
-            DocumentHub
-          </span>
+          <span className="text-sm font-semibold tracking-tight text-gray-900">DocumentHub</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
@@ -47,15 +40,14 @@ export function MarketingNav() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/login">
+          <Link to="/login">
             <Button variant="ghost" className="hidden sm:inline-flex">
               Sign in
             </Button>
           </Link>
-          <Link href="/signup">
+          <Link to="/signup">
             <Button>
-              Get started{" "}
-              <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+              Get started <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
             </Button>
           </Link>
         </div>
@@ -66,7 +58,7 @@ export function MarketingNav() {
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link
+    <a
       href={href}
       className="relative text-sm font-medium text-gray-700 transition-colors hover:text-gray-900"
     >
@@ -78,7 +70,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
         whileHover={{ scaleX: 1 }}
         transition={{ duration: 0.2 }}
       />
-    </Link>
+    </a>
   );
 }
 
@@ -105,8 +97,7 @@ export function MarketingHero() {
               transition={{ duration: 0.5 }}
               className="text-balance text-4xl font-semibold tracking-tight text-gray-900 md:text-5xl"
             >
-              Securely upload, organize, and share documents—without compromising
-              control.
+              Securely upload, organize, and share documents—without compromising control.
             </motion.h1>
 
             <motion.p
@@ -115,9 +106,8 @@ export function MarketingHero() {
               transition={{ duration: 0.5, delay: 0.05 }}
               className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-gray-600 md:text-lg"
             >
-              DocumentHub is a Scribd-like platform built for professional
-              workflows: granular visibility, fast viewer UX, analytics, and a
-              clean dashboard for your content library.
+              DocumentHub is a Scribd-like platform built for professional workflows: granular visibility,
+              fast viewer UX, analytics, and a clean dashboard for your content library.
             </motion.p>
 
             <motion.div
@@ -126,26 +116,21 @@ export function MarketingHero() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             >
-              <Link href="/signup">
+              <Link to="/signup">
                 <Button className="w-full sm:w-auto">
-                  Create your account{" "}
-                  <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+                  Create your account <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
                 </Button>
               </Link>
-              <Link href="#features">
+              <a href="#features">
                 <Button variant="secondary" className="w-full sm:w-auto">
                   Explore features
                 </Button>
-              </Link>
+              </a>
             </motion.div>
 
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Stat label="Upload speed" value="Fast" icon={faCloudArrowUp} />
-              <Stat
-                label="Search"
-                value="Instant"
-                icon={faMagnifyingGlass}
-              />
+              <Stat label="Search" value="Instant" icon={faMagnifyingGlass} />
               <Stat label="Security" value="RLS-ready" icon={faLock} />
             </div>
           </div>
@@ -159,16 +144,12 @@ export function MarketingHero() {
             >
               <div className="border-b border-gray-100 p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Library overview
-                  </p>
+                  <p className="text-sm font-semibold text-gray-900">Library overview</p>
                   <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                     Live
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600">
-                  Visibility, view counts, and status at a glance.
-                </p>
+                <p className="mt-1 text-sm text-gray-600">Visibility, view counts, and status at a glance.</p>
               </div>
 
               <div className="p-5">
@@ -183,18 +164,11 @@ export function MarketingHero() {
                       className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900">
-                          {row.title}
-                        </p>
-                        <p className="text-xs leading-5 text-gray-600">
-                          {row.meta}
-                        </p>
+                        <p className="truncate text-sm font-semibold text-gray-900">{row.title}</p>
+                        <p className="text-xs leading-5 text-gray-600">{row.meta}</p>
                       </div>
                       <div className="flex min-w-[3.75rem] flex-none items-center justify-end gap-2 text-xs tabular-nums text-gray-600">
-                        <FontAwesomeIcon
-                          icon={faChartLine}
-                          className="h-3.5 w-3.5"
-                        />
+                        <FontAwesomeIcon icon={faChartLine} className="h-3.5 w-3.5" />
                         <span>1.2k</span>
                       </div>
                     </div>
@@ -204,8 +178,7 @@ export function MarketingHero() {
                 <div className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-4 text-white">
                   <p className="text-sm font-semibold">Share confidently</p>
                   <p className="mt-1 text-sm text-white/85">
-                    Choose public, unlisted, or private access with optional
-                    watermarking.
+                    Choose public, unlisted, or private access with optional watermarking.
                   </p>
                 </div>
               </div>
@@ -248,39 +221,26 @@ export function MarketingFooter() {
         <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
           <div className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-              <FontAwesomeIcon
-                icon={faFileShield}
-                className="h-4 w-4 text-blue-600"
-              />
+              <FontAwesomeIcon icon={faFileShield} className="h-4 w-4 text-blue-600" />
             </span>
             <div>
               <p className="text-sm font-semibold text-gray-900">DocumentHub</p>
-              <p className="text-xs text-gray-600">
-                Secure document sharing and viewing.
-              </p>
+              <p className="text-xs text-gray-600">Secure document sharing and viewing.</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
+            <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
               Sign in
             </Link>
             <span className="text-gray-300">|</span>
-            <Link
-              href="/signup"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
+            <Link to="/signup" className="text-sm font-medium text-gray-700 hover:text-gray-900">
               Create account
             </Link>
           </div>
         </div>
 
-        <p className="mt-8 text-xs text-gray-500">
-          © {new Date().getFullYear()} DocumentHub. All rights reserved.
-        </p>
+        <p className="mt-8 text-xs text-gray-500">© {new Date().getFullYear()} DocumentHub. All rights reserved.</p>
       </Container>
     </footer>
   );

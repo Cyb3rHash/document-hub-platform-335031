@@ -1,7 +1,5 @@
-"use client";
-
 import React from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -54,7 +52,7 @@ export function AuthShell({
 
       <header className="sticky top-0 z-30 border-b border-gray-200/70 bg-white/70 backdrop-blur">
         <Container className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white shadow-sm">
               <FontAwesomeIcon icon={faFileShield} className="h-4 w-4" />
             </span>
@@ -62,12 +60,12 @@ export function AuthShell({
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href={switchHref}>
+            <Link to={switchHref}>
               <Button variant="ghost" className="px-3 sm:px-4">
                 {switchLabel}
               </Button>
             </Link>
-            <Link href="/">
+            <Link to="/">
               <Button variant="secondary" className="hidden sm:inline-flex">
                 Back to site
               </Button>
@@ -111,11 +109,7 @@ export function AuthShell({
                     side="left"
                     active={accentSide === "left"}
                     title={mode === "login" ? panelTitle : "Already have an account?"}
-                    subtitle={
-                      mode === "login"
-                        ? panelSubtitle
-                        : "Sign in to manage your library and track engagement."
-                    }
+                    subtitle={mode === "login" ? panelSubtitle : "Sign in to manage your library and track engagement."}
                     ctaHref={mode === "login" ? "/signup" : "/login"}
                     ctaLabel={mode === "login" ? "Create account" : "Sign in"}
                   />
@@ -123,11 +117,7 @@ export function AuthShell({
                     side="right"
                     active={accentSide === "right"}
                     title={mode === "signup" ? panelTitle : "New to DocumentHub?"}
-                    subtitle={
-                      mode === "signup"
-                        ? panelSubtitle
-                        : "Create an account to start uploading and sharing securely."
-                    }
+                    subtitle={mode === "signup" ? panelSubtitle : "Create an account to start uploading and sharing securely."}
                     ctaHref={mode === "signup" ? "/login" : "/signup"}
                     ctaLabel={mode === "signup" ? "Sign in" : "Create account"}
                   />
@@ -179,8 +169,11 @@ function Panel({
         </div>
 
         <div className="mt-8">
-          <Link href={ctaHref}>
-            <Button variant={active ? "secondary" : "primary"} className={active ? "bg-white text-gray-900 hover:bg-gray-50" : undefined}>
+          <Link to={ctaHref}>
+            <Button
+              variant={active ? "secondary" : "primary"}
+              className={active ? "bg-white text-gray-900 hover:bg-gray-50" : undefined}
+            >
               {ctaLabel} <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
             </Button>
           </Link>
@@ -188,7 +181,6 @@ function Panel({
       </motion.div>
 
       {!active ? <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gray-50/25" /> : null}
-
       <span className="sr-only">{side}</span>
     </div>
   );

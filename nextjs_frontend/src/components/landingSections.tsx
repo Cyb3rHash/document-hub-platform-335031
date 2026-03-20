@@ -1,6 +1,5 @@
-"use client";
-
 import React from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -14,7 +13,6 @@ import {
   faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 import { Badge, Button, Container } from "./ui";
-import Link from "next/link";
 
 const cardMotion = {
   initial: { opacity: 0, y: 14 },
@@ -39,12 +37,11 @@ export function FeaturesSection() {
               Everything you need to publish and manage documents.
             </h2>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
-              Upload, view, and share content with a professional UX. Designed
-              for teams that care about access control, performance, and audit
-              signals.
+              Upload, view, and share content with a professional UX. Designed for teams that care about
+              access control, performance, and audit signals.
             </p>
           </div>
-          <Link href="/signup" className="md:pb-1">
+          <Link to="/signup" className="md:pb-1">
             <Button variant="secondary">Start free</Button>
           </Link>
         </div>
@@ -86,19 +83,14 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <motion.div
-      {...cardMotion}
-      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-    >
+    <motion.div {...cardMotion} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex items-start gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700">
           <FontAwesomeIcon icon={icon} className="h-5 w-5" />
         </span>
         <div>
           <p className="text-sm font-semibold text-gray-900">{title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-gray-600">
-            {description}
-          </p>
+          <p className="mt-1 text-sm leading-relaxed text-gray-600">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -121,9 +113,8 @@ export function SecuritySection() {
               Control visibility with confidence.
             </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              DocumentHub pairs a clean user experience with an authorization
-              model designed for production. Set visibility per document, enable
-              watermarking, and restrict access without friction.
+              DocumentHub pairs a clean user experience with an authorization model designed for production.
+              Set visibility per document, enable watermarking, and restrict access without friction.
             </p>
 
             <div className="mt-8 grid gap-3">
@@ -146,16 +137,9 @@ export function SecuritySection() {
           </div>
 
           <div className="lg:col-span-6">
-            <motion.div
-              {...cardMotion}
-              className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-            >
-              <p className="text-sm font-semibold text-gray-900">
-                Recommended access patterns
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                Choose the right visibility mode per document.
-              </p>
+            <motion.div {...cardMotion} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-gray-900">Recommended access patterns</p>
+              <p className="mt-1 text-sm text-gray-600">Choose the right visibility mode per document.</p>
 
               <div className="mt-5 grid gap-3">
                 <ModeRow title="Private" detail="Only you (or explicit grants) can access it." />
@@ -165,8 +149,7 @@ export function SecuritySection() {
 
               <div className="mt-6 rounded-xl bg-gray-50 p-4">
                 <p className="text-xs font-medium text-gray-600">
-                  Note: Viewer and policy behaviors depend on your backend/RLS
-                  configuration.
+                  Note: Viewer and policy behaviors depend on your backend/RLS configuration.
                 </p>
               </div>
             </motion.div>
@@ -193,9 +176,7 @@ function SecurityRow({
       </span>
       <div>
         <p className="text-sm font-semibold text-gray-900">{title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-gray-600">
-          {description}
-        </p>
+        <p className="mt-1 text-sm leading-relaxed text-gray-600">{description}</p>
       </div>
     </div>
   );
@@ -227,9 +208,8 @@ export function PricingSection() {
                 Start free. Upgrade when you need more.
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
-                DocumentHub is designed to scale with your organization. Begin
-                with a secure personal library and add advanced controls as your
-                needs grow.
+                DocumentHub is designed to scale with your organization. Begin with a secure personal library
+                and add advanced controls as your needs grow.
               </p>
             </div>
 
@@ -252,7 +232,7 @@ export function PricingSection() {
                   Viewer analytics signals
                 </li>
               </ul>
-              <Link href="/signup" className="mt-6 block">
+              <Link to="/signup" className="mt-6 block">
                 <Button className="w-full">Create account</Button>
               </Link>
             </div>

@@ -1,14 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_KEY;
 
-// In `output: "export"` mode, Next.js will prerender pages at build time. If we
-// throw on import, builds will fail in environments where the frontend env vars
-// are not configured (common in CI for UI-only tasks).
-//
-// We therefore create the client lazily and throw only when an auth action is
-// actually invoked (at runtime).
+// Create the client lazily so builds don't fail in environments without runtime env vars.
+// Vite injects import.meta.env at build time, but some CI pipelines may not set them for UI-only builds.
 let _client: SupabaseClient | null = null;
 
 // PUBLIC_INTERFACE
@@ -17,11 +13,10 @@ export function getSupabaseClient(): SupabaseClient {
    * Returns a configured Supabase client.
    *
    * Throws a clear error if required NEXT_PUBLIC_* environment variables are not set.
-   * This is intentionally deferred to runtime to avoid breaking static export builds.
    */
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in frontend environment."
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_KEY) in frontend environment."
     );
   }
 
@@ -32,12 +27,10 @@ export function getSupabaseClient(): SupabaseClient {
 }
 
 // Backward-compatible named export used throughout the app.
-// Note: this may be `null` until first access via `getSupabaseClient()`.
 export const supabase = {
   auth: {
     signInWithPassword: (...args: Parameters<SupabaseClient["auth"]["signInWithPassword"]>) =>
       getSupabaseClient().auth.signInWithPassword(...args),
-    signUp: (...args: Parameters<SupabaseClient["auth"]["signUp"]>) =>
-      getSupabaseClient().auth.signUp(...args),
+    signUp: (...args: Parameters<SupabaseClient["auth"]["signUp"]>) => getSupabaseClient().auth.signUp(...args),
   },
 };

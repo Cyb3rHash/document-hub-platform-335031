@@ -225,7 +225,12 @@ export function CardHeader({
 }) {
   /** Standard card header with title + optional actions. */
   return (
-    <header className={cn("flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5", className)}>
+    <header
+      className={cn(
+        "flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5",
+        className
+      )}
+    >
       <div className="min-w-0">
         <h2 className="truncate text-sm font-semibold tracking-tight text-gray-900">{title}</h2>
         {subtitle ? <p className="mt-1 text-sm leading-relaxed text-gray-600">{subtitle}</p> : null}
