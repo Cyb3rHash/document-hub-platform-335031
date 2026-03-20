@@ -44,14 +44,24 @@ export function getApiBaseConfig(): ApiBaseConfig {
   /**
    * Returns normalized API base URL configuration for the frontend.
    *
-   * Priority order:
-   * - NEXT_PUBLIC_API_BASE
-   * - NEXT_PUBLIC_BACKEND_URL
+   * Vite requires browser-exposed env vars to start with VITE_.
    *
-   * If neither is set, defaults to same-origin (empty base) which only works if the SPA is served behind the same domain
+   * Priority order:
+   * - VITE_API_BASE
+   * - VITE_BACKEND_URL
+   * - VITE_NEXT_PUBLIC_API_BASE (legacy support)
+   * - VITE_NEXT_PUBLIC_BACKEND_URL (legacy support)
+   *
+   * If none is set, defaults to same-origin (empty base) which only works if the SPA is served behind the same domain
    * and a reverse proxy routes API paths to the backend.
    */
-  const raw = import.meta.env.NEXT_PUBLIC_API_BASE ?? import.meta.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+  const raw =
+    import.meta.env.VITE_API_BASE ??
+    import.meta.env.VITE_BACKEND_URL ??
+    import.meta.env.VITE_NEXT_PUBLIC_API_BASE ??
+    import.meta.env.VITE_NEXT_PUBLIC_BACKEND_URL ??
+    "";
+
   const baseUrl = raw.endsWith("/") ? raw.slice(0, -1) : raw;
   return { baseUrl };
 }

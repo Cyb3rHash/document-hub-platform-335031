@@ -1,7 +1,19 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_KEY;
+/**
+ * Vite only exposes env vars to the browser when they are prefixed with VITE_.
+ *
+ * This app previously relied on NEXT_PUBLIC_* (Next.js convention). To preserve compatibility with
+ * existing deployments, we support:
+ * - VITE_SUPABASE_URL / VITE_SUPABASE_KEY (preferred)
+ * - VITE_NEXT_PUBLIC_SUPABASE_URL / VITE_NEXT_PUBLIC_SUPABASE_KEY (legacy-but-still-Vite-exposed)
+ */
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_KEY ??
+  import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_KEY ??
+  // tolerate older naming that some setups used
+  import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Create the client lazily so builds don't fail in environments without runtime env vars.
 // Vite injects import.meta.env at build time, but some CI pipelines may not set them for UI-only builds.
@@ -12,11 +24,11 @@ export function getSupabaseClient(): SupabaseClient {
   /**
    * Returns a configured Supabase client.
    *
-   * Throws a clear error if required NEXT_PUBLIC_* environment variables are not set.
+   * Throws a clear error if required VITE_* environment variables are not set.
    */
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_KEY) in frontend environment."
+      "Missing VITE_SUPABASE_URL and/or VITE_SUPABASE_KEY in frontend environment (fallbacks: VITE_NEXT_PUBLIC_SUPABASE_URL / VITE_NEXT_PUBLIC_SUPABASE_KEY)."
     );
   }
 
