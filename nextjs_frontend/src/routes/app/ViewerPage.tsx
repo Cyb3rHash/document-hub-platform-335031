@@ -8,39 +8,64 @@ import {
   faChevronRight,
   faUpRightFromSquare,
   faDownload,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import { useLocation } from "react-router-dom";
 import { Button, Card, CardBody, CardHeader, PageHeader, cn } from "@/components/ui";
+import { useDocuments, useDocument } from "@/hooks/documents";
+import { documentHubApi } from "@/api/documentHubApi";
 
-type DocRow = { id: string; title: string; visibility: "Private" | "Unlisted" | "Public" };
+function useQueryParam(name: string): string | null {
+  const location = useLocation();
+  return useMemo(() => new URLSearchParams(location.search).get(name), [location.search, name]);
+}
 
 // PUBLIC_INTERFACE
 export default function ViewerPage() {
-  /** Viewer page scaffold (UI only) with layout ready for PDF.js integration. */
-  const docs: DocRow[] = useMemo(
-    () => [
-      { id: "doc_1", title: "Quarterly Report", visibility: "Private" },
-      { id: "doc_2", title: "Product Brief", visibility: "Unlisted" },
-      { id: "doc_3", title: "Onboarding Guide", visibility: "Public" },
-      { id: "doc_4", title: "Security Review", visibility: "Private" },
-    ],
-    []
-  );
+  /** Viewer page connected to backend document read and view-url endpoints. */
+  const initialId = useQueryParam("id");
 
-  const [activeId, setActiveId] = useState(docs[0]?.id);
-  const active = useMemo(() => docs.find((d) => d.id === activeId) ?? docs[0], [activeId, docs]);
+  const [search, setSearch] = useState("");
+  const listQuery = useDocuments({ q: search, visibility: "all", status: "all" });
+  const docs = listQuery.data?.items ?? [];
+
+  const [activeId, setActiveId] = useState<string | null>(() => initialId ?? docs[0]?.id ?? null);
+
+  // Keep active selection stable when list loads.
+  React.useEffect(() => {
+    if (!activeId && docs[0]?.id) setActiveId(docs[0].id);
+  }, [activeId, docs]);
+
+  const detailQuery = useDocument(activeId);
+
+  const activeTitle = detailQuery.data?.title ?? (activeId ? "Loading…" : "No document selected");
+  const activeVisibility = detailQuery.data?.visibility ?? undefined;
+
+  async function openInNewTab() {
+    if (!activeId) return;
+    const { url } = await documentHubApi.getDocumentViewUrl(activeId);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function download() {
+    if (!activeId) return;
+    const { url } = await documentHubApi.getDocumentViewUrl(activeId);
+    // Best-effort: open URL (backend should set content-disposition if it wants a download)
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <div className="grid gap-6">
       <PageHeader
         title="Viewer"
-        subtitle="Review documents with pagination, zoom, and access-aware controls."
+        subtitle="Review documents with access-aware controls and backend-provided view/download URLs."
         actions={
           <>
-            <Button variant="secondary">
+            <Button variant="secondary" onClick={() => void openInNewTab()} disabled={!activeId}>
               <FontAwesomeIcon icon={faUpRightFromSquare} className="h-4 w-4" />
               Open in new tab
             </Button>
-            <Button variant="secondary">
+            <Button variant="secondary" onClick={() => void download()} disabled={!activeId}>
               <FontAwesomeIcon icon={faDownload} className="h-4 w-4" />
               Download
             </Button>
@@ -50,12 +75,26 @@ export default function ViewerPage() {
 
       <div className="grid gap-4 lg:grid-cols-12">
         <Card className="lg:col-span-4">
-          <CardHeader title="Library" subtitle="Select a document to view." />
+          <CardHeader
+            title="Library"
+            subtitle={
+              listQuery.loading
+                ? "Loading documents…"
+                : listQuery.error
+                  ? "Unable to load documents."
+                  : "Select a document to view."
+            }
+          />
           <CardBody className="grid gap-3">
             <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-gray-400" />
-                <span>Search within library</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search within library"
+                  className="w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
+                />
               </div>
             </div>
 
@@ -63,6 +102,7 @@ export default function ViewerPage() {
               <div className="grid gap-2">
                 {docs.map((d) => {
                   const activeRow = d.id === activeId;
+                  const visLabel = d.visibility ?? "private";
                   return (
                     <button
                       key={d.id}
@@ -83,14 +123,20 @@ export default function ViewerPage() {
                           <FontAwesomeIcon icon={faFileLines} className="h-4 w-4" />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-gray-900">{d.title}</p>
-                          <p className="mt-0.5 text-xs text-gray-500">{d.visibility}</p>
+                          <p className="truncate text-sm font-semibold text-gray-900">{d.title ?? "Untitled"}</p>
+                          <p className="mt-0.5 text-xs text-gray-500">{visLabel}</p>
                         </div>
                       </div>
-                      <span className="text-xs font-semibold text-gray-500">v1</span>
+                      <span className="text-xs font-semibold text-gray-500">{d.status ?? "—"}</span>
                     </button>
                   );
                 })}
+
+                {docs.length === 0 && !listQuery.loading ? (
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-6 text-sm text-gray-600">
+                    No documents yet. Upload one to start viewing.
+                  </div>
+                ) : null}
               </div>
             </div>
           </CardBody>
@@ -100,15 +146,24 @@ export default function ViewerPage() {
           <div className="border-b border-gray-100 px-6 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-gray-900">{active?.title}</p>
-                <p className="text-xs text-gray-500">Page 1 of 14 · Zoom 100%</p>
+                <p className="truncate text-sm font-semibold text-gray-900">{activeTitle}</p>
+                <p className="text-xs text-gray-500">
+                  {detailQuery.loading ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin className="mr-2 h-3.5 w-3.5" />
+                      Loading metadata…
+                    </>
+                  ) : (
+                    `Visibility: ${activeVisibility ?? "—"}`
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" className="px-3 py-2">
+                <Button variant="ghost" className="px-3 py-2" disabled>
                   <FontAwesomeIcon icon={faChevronLeft} className="h-3.5 w-3.5" />
                   Prev
                 </Button>
-                <Button variant="ghost" className="px-3 py-2">
+                <Button variant="ghost" className="px-3 py-2" disabled>
                   Next
                   <FontAwesomeIcon icon={faChevronRight} className="h-3.5 w-3.5" />
                 </Button>
@@ -118,7 +173,7 @@ export default function ViewerPage() {
 
           <div className="h-[28rem] overflow-auto bg-gray-50 p-6 sm:h-[34rem]">
             <motion.div
-              key={active?.id}
+              key={activeId ?? "none"}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28 }}
@@ -127,8 +182,8 @@ export default function ViewerPage() {
               <div className="text-center">
                 <p className="text-sm font-semibold text-gray-900">Viewer placeholder</p>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  Integrate PDF.js rendering here (pagination, zoom, fullscreen, lazy-load). This layout already
-                  isolates scrolling so the sidebar and topbar remain stable.
+                  The viewer shell is wired to real backend metadata + signed URL actions. Next step is to render the
+                  document content (PDF.js or an iframe) using the URL returned by the backend.
                 </p>
               </div>
             </motion.div>
