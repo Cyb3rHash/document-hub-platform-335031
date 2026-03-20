@@ -1,3 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Global app variables + base defaults. Tailwind utilities are generated via the
+ * PostCSS pipeline (see postcss.config.mjs) and then included through this file.
+ */
 :root {
   --color-primary: #111827; /* gray-900 */
   --color-secondary: #ffffff;

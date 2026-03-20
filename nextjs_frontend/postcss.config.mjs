@@ -1,11 +1,11 @@
 const config = {
   plugins: {
     /**
-     * Tailwind is intentionally disabled here to avoid Tailwind v4's PostCSS plugin
-     * requirements (and native optional dependency issues) in this environment.
-     *
-     * The app's styling is handled via plain CSS (see src/styles/globals.css).
+     * Tailwind CSS (v3) PostCSS pipeline.
+     * We use v3 here because this environment runs Node 18, and Tailwind v4's
+     * native oxide binding requires Node >= 20.
      */
+    tailwindcss: {},
     autoprefixer: {},
   },
 };

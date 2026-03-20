@@ -6,6 +6,7 @@ export default [
   {
     ignores: [
       "**/node_modules/**",
+      "**/node_modules.bak_*/**",
       "**/.next/**",
       "**/out/**",
       "**/dist/**",
