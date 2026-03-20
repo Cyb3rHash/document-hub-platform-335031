@@ -28,7 +28,10 @@ export function MarketingNav() {
       <Container className="flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-            <FontAwesomeIcon icon={faFileShield} className="h-4 w-4 text-blue-600" />
+            <FontAwesomeIcon
+              icon={faFileShield}
+              className="h-4 w-4 text-blue-600"
+            />
           </span>
           <span className="text-sm font-semibold tracking-tight text-gray-900">
             DocumentHub
@@ -51,7 +54,8 @@ export function MarketingNav() {
           </Link>
           <Link href="/signup">
             <Button>
-              Get started <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+              Get started{" "}
+              <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
             </Button>
           </Link>
         </div>
@@ -137,7 +141,11 @@ export function MarketingHero() {
 
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Stat label="Upload speed" value="Fast" icon={faCloudArrowUp} />
-              <Stat label="Search" value="Instant" icon={faMagnifyingGlass} />
+              <Stat
+                label="Search"
+                value="Instant"
+                icon={faMagnifyingGlass}
+              />
               <Stat label="Security" value="RLS-ready" icon={faLock} />
             </div>
           </div>
@@ -172,16 +180,21 @@ export function MarketingHero() {
                   ].map((row) => (
                     <div
                       key={row.title}
-                      className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-900">
                           {row.title}
                         </p>
-                        <p className="text-xs leading-5 text-gray-600">{row.meta}</p>
+                        <p className="text-xs leading-5 text-gray-600">
+                          {row.meta}
+                        </p>
                       </div>
-                      <div className="flex min-w-[3.5rem] items-center justify-end gap-2 text-xs text-gray-600">
-                        <FontAwesomeIcon icon={faChartLine} className="h-3.5 w-3.5" />
+                      <div className="flex min-w-[3.5rem] flex-none items-center justify-end gap-2 text-xs text-gray-600">
+                        <FontAwesomeIcon
+                          icon={faChartLine}
+                          className="h-3.5 w-3.5"
+                        />
                         <span>1.2k</span>
                       </div>
                     </div>
@@ -235,7 +248,10 @@ export function MarketingFooter() {
         <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
           <div className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-              <FontAwesomeIcon icon={faFileShield} className="h-4 w-4 text-blue-600" />
+              <FontAwesomeIcon
+                icon={faFileShield}
+                className="h-4 w-4 text-blue-600"
+              />
             </span>
             <div>
               <p className="text-sm font-semibold text-gray-900">DocumentHub</p>
@@ -246,11 +262,17 @@ export function MarketingFooter() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
               Sign in
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/signup" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+            <Link
+              href="/signup"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
               Create account
             </Link>
           </div>
