@@ -1,9 +1,16 @@
+import React from "react";
+import { MarketingFooter, MarketingHero, MarketingNav } from "@/components/marketing";
+import { FeaturesSection, PricingSection, SecuritySection } from "@/components/landingSections";
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white flex items-center justify-center">
-      <h1 className="text-black text-4xl font-light">
-        nextjs_frontend is being generated
-      </h1>
+    <main className="min-h-screen bg-gray-50">
+      <MarketingNav />
+      <MarketingHero />
+      <FeaturesSection />
+      <SecuritySection />
+      <PricingSection />
+      <MarketingFooter />
     </main>
   );
 }

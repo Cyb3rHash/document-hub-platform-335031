@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minimal Next.js App",
-  description: "Ultra-minimal Next.js application",
+  title: "DocumentHub — Secure document sharing and viewing",
+  description:
+    "Upload, manage, and share documents with fine-grained access controls, analytics, and a fast, modern viewer experience.",
 };
 
 export default function RootLayout({
