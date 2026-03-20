@@ -11,6 +11,7 @@ import UploadPage from "@/routes/app/UploadPage";
 import ViewerPage from "@/routes/app/ViewerPage";
 import AdminPage from "@/routes/app/AdminPage";
 import NotFoundPage from "@/routes/NotFoundPage";
+import { RequireAuth } from "@/auth/RequireAuth";
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   return (
@@ -59,7 +60,14 @@ export default function App() {
           }
         />
 
-        <Route path="/app" element={<AppLayout />}>
+        <Route
+          path="/app"
+          element={
+            <RequireAuth>
+              <AppLayout />
+            </RequireAuth>
+          }
+        >
           <Route index element={<DashboardPage />} />
           <Route path="explore" element={<ExplorePage />} />
           <Route path="upload" element={<UploadPage />} />

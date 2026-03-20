@@ -1,31 +1,55 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faLock, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button, Input } from "@/components/ui";
 import { supabase } from "@/utils/supabaseClient";
+import { useAuth } from "@/auth/AuthProvider";
+
+function safeReturnTo(value: string | null): string {
+  // Only allow in-app relative paths to avoid open redirects.
+  if (!value) return "/app";
+  if (!value.startsWith("/")) return "/app";
+  if (value.startsWith("//")) return "/app";
+  return value;
+}
 
 // PUBLIC_INTERFACE
 export default function LoginPage() {
-  /** Login page (Supabase email/password). */
+  /** Login page (Supabase email/password). Redirects to /app (or returnTo) after success. */
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, initializing } = useAuth();
+
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const returnTo = useMemo(() => safeReturnTo(params.get("returnTo")), [params]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => email.trim().length > 3 && password.length >= 6, [email, password]);
+
+  useEffect(() => {
+    // If the user is already authenticated (e.g., returning to /login), move them to the workspace.
+    if (!initializing && user) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [initializing, navigate, returnTo, user]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
 
     if (!canSubmit) return;
 
     setLoading(true);
+    const startedAt = performance.now();
+
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -34,12 +58,14 @@ export default function LoginPage() {
 
       if (signInError) throw signInError;
 
-      setSuccess("Signed in successfully. You can now return to the application.");
+      console.info("[auth] login_success", { elapsedMs: Math.round(performance.now() - startedAt), returnTo });
+      navigate(returnTo, { replace: true });
     } catch (err: unknown) {
       const message =
         typeof err === "object" && err && "message" in err
           ? String((err as { message: unknown }).message)
           : "Unable to sign in.";
+      console.error("[auth] login_failed", { message });
       setError(message);
     } finally {
       setLoading(false);
@@ -96,7 +122,7 @@ export default function LoginPage() {
 
         <motion.div
           initial={false}
-          animate={{ height: error || success ? "auto" : 0, opacity: error || success ? 1 : 0 }}
+          animate={{ height: error ? "auto" : 0, opacity: error ? 1 : 0 }}
           className="overflow-hidden"
         >
           {error ? (
@@ -104,16 +130,9 @@ export default function LoginPage() {
               {error}
             </div>
           ) : null}
-          {success ? (
-            <div className="mt-1 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {success}
-            </div>
-          ) : null}
         </motion.div>
 
-        <p className="text-xs leading-relaxed text-gray-500">
-          After signing in, continue to the workspace to upload and manage documents.
-        </p>
+        <p className="text-xs leading-relaxed text-gray-500">After signing in, you’ll be taken to your workspace.</p>
       </form>
     </AuthShell>
   );

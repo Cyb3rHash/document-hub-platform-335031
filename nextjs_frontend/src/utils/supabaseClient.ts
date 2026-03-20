@@ -33,7 +33,16 @@ export function getSupabaseClient(): SupabaseClient {
   }
 
   if (!_client) {
-    _client = createClient(supabaseUrl, supabaseAnonKey);
+    _client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Ensures session is stored (localStorage) and restored on reload.
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // Recommended for modern SPAs (and required for some OAuth providers).
+        flowType: "pkce",
+      },
+    });
   }
   return _client;
 }

@@ -1,15 +1,20 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faLock, faUser, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { useNavigate } from "react-router-dom";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button, Input } from "@/components/ui";
 import { supabase } from "@/utils/supabaseClient";
 import { getURL } from "@/utils/getURL";
+import { useAuth } from "@/auth/AuthProvider";
 
 // PUBLIC_INTERFACE
 export default function SignupPage() {
-  /** Signup page (Supabase email/password). */
+  /** Signup page (Supabase email/password). Redirects into /app when session is available. */
+  const navigate = useNavigate();
+  const { user, initializing } = useAuth();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +27,13 @@ export default function SignupPage() {
     return fullName.trim().length >= 2 && email.trim().length > 3 && password.length >= 6;
   }, [fullName, email, password]);
 
+  useEffect(() => {
+    // If signup completes and session becomes available (or user visits /signup while logged in), go to workspace.
+    if (!initializing && user) {
+      navigate("/app", { replace: true });
+    }
+  }, [initializing, navigate, user]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -30,11 +42,13 @@ export default function SignupPage() {
     if (!canSubmit) return;
 
     setLoading(true);
-    try {
-      // For email confirmation flows, redirect back to the site URL.
-      const redirectTo = getURL();
+    const startedAt = performance.now();
 
-      const { error: signUpError } = await supabase.auth.signUp({
+    try {
+      // For email confirmation flows, redirect back to the app workspace.
+      const redirectTo = `${getURL()}app`;
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -45,12 +59,25 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError;
 
+      console.info("[auth] signup_success", {
+        elapsedMs: Math.round(performance.now() - startedAt),
+        hasSession: Boolean(data.session),
+        hasUser: Boolean(data.user),
+      });
+
+      // If confirmations are disabled, Supabase may immediately return a session.
+      if (data.session) {
+        navigate("/app", { replace: true });
+        return;
+      }
+
       setSuccess("Account created. If email confirmation is enabled, check your inbox to verify your address.");
     } catch (err: unknown) {
       const message =
         typeof err === "object" && err && "message" in err
           ? String((err as { message: unknown }).message)
           : "Unable to create account.";
+      console.error("[auth] signup_failed", { message });
       setError(message);
     } finally {
       setLoading(false);
