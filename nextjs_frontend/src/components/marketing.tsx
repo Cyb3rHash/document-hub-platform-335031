@@ -91,7 +91,7 @@ export function MarketingHero() {
         <div className="absolute -top-24 left-1/2 h-72 w-[56rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-500/15 via-cyan-500/10 to-gray-50 opacity-80 blur-3xl" />
       </div>
 
-      <Container className="relative py-12 md:py-24">
+      <Container className="relative py-10 sm:py-12 md:py-24">
         <div className="grid gap-10 md:grid-cols-12 md:items-center lg:gap-12">
           <div className="md:col-span-7">
             <Badge className="mb-5">

@@ -89,7 +89,7 @@ export default function SignupPage() {
             />
             <FontAwesomeIcon
               icon={faUser}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400"
+              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
             />
           </div>
 
@@ -106,7 +106,7 @@ export default function SignupPage() {
             />
             <FontAwesomeIcon
               icon={faEnvelope}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400"
+              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function SignupPage() {
             />
             <FontAwesomeIcon
               icon={faLock}
-              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400"
+              className="pointer-events-none absolute right-3 top-9 h-4 w-4 text-gray-400 hidden sm:block"
             />
           </div>
         </div>

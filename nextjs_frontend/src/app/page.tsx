@@ -6,11 +6,13 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
       <MarketingNav />
-      <MarketingHero />
-      <FeaturesSection />
-      <SecuritySection />
-      <PricingSection />
-      <MarketingFooter />
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+        <MarketingHero />
+        <FeaturesSection />
+        <SecuritySection />
+        <PricingSection />
+        <MarketingFooter />
+      </div>
     </main>
   );
 }

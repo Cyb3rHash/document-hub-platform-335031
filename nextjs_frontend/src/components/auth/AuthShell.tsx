@@ -48,7 +48,11 @@ export function AuthShell({
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200/70 bg-gray-50/70 backdrop-blur">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10">
+        <div className="mx-auto h-72 w-[56rem] max-w-[95vw] rounded-full bg-gradient-to-r from-blue-500/10 via-cyan-500/8 to-gray-50 opacity-90 blur-3xl" />
+      </div>
+
+      <header className="sticky top-0 z-30 border-b border-gray-200/70 bg-gray-50/70 backdrop-blur">
         <Container className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -58,25 +62,35 @@ export function AuthShell({
               DocumentHub
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href={switchHref}>
-              <Button variant="ghost">{switchLabel}</Button>
+              <Button variant="ghost" className="px-3 sm:px-4">
+                {switchLabel}
+              </Button>
             </Link>
             <Link href="/">
-              <Button variant="secondary">Back to site</Button>
+              <Button variant="secondary" className="hidden sm:inline-flex">
+                Back to site
+              </Button>
             </Link>
           </div>
         </Container>
       </header>
 
-      <Container className="py-10 md:py-14">
-        <div className="grid gap-6 lg:grid-cols-12">
+      {/* 
+        Scroll/height handling:
+        - On small screens, content should naturally scroll (default).
+        - On large screens, avoid awkward overflows by giving the right panel a max height.
+      */}
+      <Container className="py-8 md:py-12">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch">
           <div className="lg:col-span-5">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className="rounded-3xl border border-gray-200 bg-white p-7 shadow-sm"
+              className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7"
             >
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
                 {title}
@@ -85,12 +99,12 @@ export function AuthShell({
                 {subtitle}
               </p>
 
-              <div className="mt-7">{children}</div>
+              <div className="mt-6">{children}</div>
             </motion.div>
           </div>
 
           <div className="lg:col-span-7">
-            <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm lg:max-h-[calc(100vh-8.5rem)]">
               {/* Accent background that slides between sides */}
               <motion.div
                 className="absolute inset-y-0 w-full bg-gradient-to-br from-gray-900 via-gray-900 to-blue-700"
@@ -104,33 +118,40 @@ export function AuthShell({
                 transition={{ type: "spring", stiffness: 70, damping: 18 }}
               />
 
-              <div className="relative grid gap-6 p-8 md:grid-cols-2 md:p-10">
-                <Panel
-                  side="left"
-                  active={accentSide === "left"}
-                  title={mode === "login" ? panelTitle : "Already have an account?"}
-                  subtitle={
-                    mode === "login"
-                      ? panelSubtitle
-                      : "Sign in to manage your library and track engagement."
-                  }
-                  ctaHref={mode === "login" ? "/signup" : "/login"}
-                  ctaLabel={mode === "login" ? "Create account" : "Sign in"}
-                />
-                <Panel
-                  side="right"
-                  active={accentSide === "right"}
-                  title={mode === "signup" ? panelTitle : "New to DocumentHub?"}
-                  subtitle={
-                    mode === "signup"
-                      ? panelSubtitle
-                      : "Create an account to start uploading and sharing securely."
-                  }
-                  ctaHref={mode === "signup" ? "/login" : "/signup"}
-                  ctaLabel={mode === "signup" ? "Sign in" : "Create account"}
-                />
+              {/* Make the panel content scroll if the viewport is short */}
+              <div className="relative max-h-full overflow-auto">
+                <div className="grid gap-6 p-7 md:grid-cols-2 md:p-10">
+                  <Panel
+                    side="left"
+                    active={accentSide === "left"}
+                    title={mode === "login" ? panelTitle : "Already have an account?"}
+                    subtitle={
+                      mode === "login"
+                        ? panelSubtitle
+                        : "Sign in to manage your library and track engagement."
+                    }
+                    ctaHref={mode === "login" ? "/signup" : "/login"}
+                    ctaLabel={mode === "login" ? "Create account" : "Sign in"}
+                  />
+                  <Panel
+                    side="right"
+                    active={accentSide === "right"}
+                    title={mode === "signup" ? panelTitle : "New to DocumentHub?"}
+                    subtitle={
+                      mode === "signup"
+                        ? panelSubtitle
+                        : "Create an account to start uploading and sharing securely."
+                    }
+                    ctaHref={mode === "signup" ? "/login" : "/signup"}
+                    ctaLabel={mode === "signup" ? "Sign in" : "Create account"}
+                  />
+                </div>
               </div>
             </div>
+
+            <p className="mt-3 text-xs leading-relaxed text-gray-500 sm:hidden">
+              Use the header actions to switch modes or return to the site.
+            </p>
           </div>
         </div>
       </Container>
