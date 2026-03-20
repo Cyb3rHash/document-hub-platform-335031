@@ -53,7 +53,7 @@ export default defineConfig({
   server: {
     // Cloud dev environments often require binding to 0.0.0.0
     host: true,
-    port: Number(process.env.NEXT_PUBLIC_PORT || 3000),
+    port: Number(process.env.VITE_PORT || process.env.NEXT_PUBLIC_PORT || 3000),
     strictPort: false,
     /**
      * Allow Kavia preview hostnames through Vite's host check.

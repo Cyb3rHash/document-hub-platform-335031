@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port $NEXT_PUBLIC_PORT --host 0.0.0.0",
+    "dev": "vite --port ${VITE_PORT:-${NEXT_PUBLIC_PORT:-3000}} --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --port $NEXT_PUBLIC_PORT --host 0.0.0.0",
+    "preview": "vite preview --port ${VITE_PORT:-${NEXT_PUBLIC_PORT:-3000}} --host 0.0.0.0",
     "lint": "eslint ."
   },
   "dependencies": {
